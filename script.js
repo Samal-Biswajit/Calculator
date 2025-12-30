@@ -30,20 +30,22 @@ function operate(op, a, b) {
   if (op === "/") return divide(a, b);
 }
 
-// Format result (round long decimals)
+// Format result safely
 function formatResult(res) {
-  return parseFloat(res.toFixed(6)).toString();
+  return Number.isInteger(res)
+    ? res.toString()
+    : parseFloat(res.toFixed(6)).toString();
 }
 
-// Reset everything
+// Reset everything properly
 function clearAll() {
   firstNumber = null;
   secondNumber = null;
   operator = null;
-  lastResult = null;
   currentInput = "";
+  lastResult = null;
   shouldResetDisplay = false;
-  display.innerText = "0";
+  display.innerText = "0"; // force reset
 }
 
 // Button click handling
@@ -57,13 +59,15 @@ buttons.forEach((button) => {
       return;
     }
 
+    // NUMBER or OPERATOR → reset if result was shown
+    if (shouldResetDisplay) {
+      currentInput = "";
+      shouldResetDisplay = false;
+      display.innerText = "";
+    }
+
     // NUMBER
     if (!isNaN(value)) {
-      if (shouldResetDisplay) {
-        currentInput = "";
-        shouldResetDisplay = false;
-        display.innerText = "";
-      }
       currentInput += value;
       display.innerText = currentInput;
       return;
@@ -71,14 +75,11 @@ buttons.forEach((button) => {
 
     // OPERATOR
     if (["+", "-", "*", "/"].includes(value)) {
-      if (operator && currentInput === "") {
-        operator = value; // update to last operator, don't calculate
-        return;
-      }
+      if (!currentInput && lastResult === null) return; // don't run on empty
 
       if (firstNumber === null) {
         firstNumber = Number(currentInput);
-      } else if (operator) {
+      } else if (operator && currentInput) {
         secondNumber = Number(currentInput);
         let result = operate(operator, firstNumber, secondNumber);
 
@@ -101,7 +102,7 @@ buttons.forEach((button) => {
 
     // EQUAL "="
     if (value === "=") {
-      if (firstNumber !== null && operator && currentInput !== "") {
+      if (firstNumber !== null && operator && currentInput) {
         secondNumber = Number(currentInput);
         let result = operate(operator, firstNumber, secondNumber);
 
